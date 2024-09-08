@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="resource-header">
+    <h3>Project Resources</h3>
+    <button id="add-resource" class="btn severity-badge severity-Medium">
+        <i class="fas fa-plus-circle"></i> Add Resource
+    </button>
+</div>
+<div class="resource-list">
+    <table id="resource-table" class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Resource Type</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Resources will be dynamically added here -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal for adding/editing resources -->
+<div id="resource-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h4>Add Resource</h4>
+        <form id="resource-form">
+            <div class="form-group">
+                <label for="resource-name">Name:</label>
+                <input type="text" id="resource-name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="resource-type">Resource Type:</label>
+                <select id="resource-type" name="resourceType" required>
+                    <option value="Tech Lead">Tech Lead</option>
+                    <option value="Project Manager">Project Manager</option>
+                    <option value="Developer">Developer</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Save</button>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const resourceModal = document.getElementById('resource-modal');
+    const addResourceButton = document.getElementById('add-resource');
+    const closeResourceButton = resourceModal.querySelector('.close');
+    const resourceForm = document.getElementById('resource-form');
+    const resourceTable = document.getElementById('resource-table');
+
+    addResourceButton.onclick = function() {
+        resourceModal.style.display = 'block';
+        resourceForm.reset();
+    }
+
+    closeResourceButton.onclick = function() {
+        resourceModal.style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        if (event.target == resourceModal) {
+            resourceModal.style.display = 'none';
+        }
+    }
+
+    resourceForm.onsubmit = function(e) {
+        e.preventDefault();
+        const formData = new FormData(resourceForm);
+        const data = Object.fromEntries(formData.entries());
+
+        fetch(`/add_resource/{{ project.id }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                addResourceToTable(result.resource);
+                resourceModal.style.display = 'none';
+                resourceForm.reset();
+            } else {
+                alert('Failed to save. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+
+    function addResourceToTable(resource) {
+        const row = resourceTable.insertRow(-1);
+        row.innerHTML = `
+            <td>${resource.name}</td>
+            <td>${resource.resourceType}</td>
+            <td>
+                <button onclick="deleteResource(${resource.id})" class="btn-action severity-badge severity-Critical">Delete</button>
+            </td>
+        `;
+    }
+
+    window.deleteResource = function(id) {
+        if (confirm('Are you sure you want to delete this resource?')) {
+            fetch(`/delete_resource/${id}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        const rows = resourceTable.getElementsByTagName('tr');
+                        for (let i = 1; i < rows.length; i++) {
+                            if (rows[i].cells[2].querySelector('button').getAttribute('onclick').includes(id)) {
+                                resourceTable.deleteRow(i);
+                                break;
+                            }
+                        }
+                    } else {
+                        alert('Failed to delete. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                });
+        }
+    }
+
+    // Load existing resources when the page loads
+    fetch(`/get_resources/{{ project.id }}`)
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                result.resources.forEach(resource => addResourceToTable(resource));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to load resources. Please refresh the page.');
+        });
+});
+</script>
+{% endblock %}

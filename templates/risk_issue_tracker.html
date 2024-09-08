@@ -1,0 +1,73 @@
+<div id="risk-issue-tracker" class="tab-pane active">
+    <h3>Risk and Issue Tracker</h3>
+    <button id="add-risk-issue" class="btn btn-primary">Add New Risk/Issue</button>
+    <table id="risk-issue-table" class="table">
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Date Created</th>
+                <th>Severity</th>
+                <th>Impact</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Risk and Issue items will be dynamically added here -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal for adding/editing risk/issue -->
+<div id="risk-issue-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h4>Add/Edit Risk/Issue</h4>
+        <form id="risk-issue-form">
+            <div class="form-group">
+                <label>Type:</label>
+                <input type="radio" name="type" value="Risk" required> Risk
+                <input type="radio" name="type" value="Issue" required> Issue
+            </div>
+            <div class="form-group">
+                <label for="title">Title:</label>
+                <input type="text" id="title" name="title" required>
+            </div>
+            <div class="form-group">
+                <label for="severity">Severity:</label>
+                <select id="severity" name="severity" required>
+                    <option value="Critical">Critical</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                    <option value="TBD">TBD</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Impact:</label>
+                <input type="checkbox" name="impact" value="Scope"> Scope
+                <input type="checkbox" name="impact" value="Schedule"> Schedule
+                <input type="checkbox" name="impact" value="Budget"> Budget
+                <input type="checkbox" name="impact" value="Resources"> Resources
+            </div>
+            <div class="form-group">
+                <label for="mitigation">Mitigation Plan:</label>
+                <textarea id="mitigation" name="mitigation" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="status">Status:</label>
+                <select id="status" name="status" required>
+                    <option value="Open">Open</option>
+                    <option value="Closed">Closed</option>
+                    <option value="Monitoring">Monitoring</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="notes">Notes:</label>
+                <textarea id="notes" name="notes" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Save</button>
+        </form>
+    </div>
+</div>

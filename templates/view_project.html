@@ -1,0 +1,1358 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="text-center project-title">{{ project.name }}</h2>
+<p class="text-center client-name"><strong>Client:</strong> {{ project.client_name }}</p>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <h3>Business Objectives</h3>
+        <div id="objectives-view" class="editable" onclick="makeEditable('objectives')">
+            <ol>
+                {% if project.objectives %}
+                    {% for objective in project.objectives.split('\n') %}
+                        {% if objective.strip() %}
+                            <li>{{ objective }}</li>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <li class="empty-field">Click to add objectives</li>
+                {% endif %}
+            </ol>
+        </div>
+        <div id="objectives-edit" style="display: none;">
+            <textarea id="objectives-textarea" rows="5">{{ project.objectives or '' }}</textarea>
+            <p class="hint">Enter each objective on a new line. They will be automatically numbered.</p>
+            <button onclick="saveEdit('objectives')">Save</button>
+            <button onclick="cancelEdit('objectives')">Cancel</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Project Timeline</h3>
+        <div id="timeline-view" class="editable" onclick="makeEditable('timeline')">
+            <p><strong>Start:</strong> <span id="start-date-view">
+                {% if project.planned_start_date %}
+                    {{ project.planned_start_date.strftime('%m/%d/%Y') }}
+                {% else %}
+                    Not set
+                {% endif %}
+            </span></p>
+            <p><strong>Complete:</strong> <span id="complete-date-view">
+                {% if project.planned_complete_date %}
+                    {{ project.planned_complete_date.strftime('%m/%d/%Y') }}
+                {% else %}
+                    Not set
+                {% endif %}
+            </span></p>
+        </div>
+        <div id="timeline-edit" style="display: none;">
+            <label>Start Date: <input type="date" id="start-date" value="{{ project.planned_start_date.strftime('%Y-%m-%d') if project.planned_start_date else '' }}"></label>
+            <label>Complete Date: <input type="date" id="complete-date" value="{{ project.planned_complete_date.strftime('%Y-%m-%d') if project.planned_complete_date else '' }}"></label>
+            <button onclick="saveEdit('timeline')">Save</button>
+            <button onclick="cancelEdit('timeline')">Cancel</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Budget</h3>
+        <div id="budget-view" class="editable" onclick="makeEditable('budget')">
+            <p><strong>Planned:</strong> <span id="budget-value">{% if project.budget is not none %}${{ "{:,.0f}".format(project.budget) }}{% else %}Not set{% endif %}</span></p>
+            <p><strong>Actuals:</strong> <span id="actuals-value">{% if project.actuals is not none %}${{ "{:,.0f}".format(project.actuals) }}{% else %}Not set{% endif %}</span></p>
+        </div>
+        <div id="budget-edit" style="display: none;">
+            <label>Planned Budget: $<input type="number" id="budget-input" value="{{ project.budget or '' }}"></label>
+            <label>Actuals: $<input type="number" id="actuals-input" value="{{ project.actuals or '' }}"></label>
+            <button onclick="saveEdit('budget')">Save</button>
+            <button onclick="cancelEdit('budget')">Cancel</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Project Scope</h3>
+        <div id="scope-view" class="editable" onclick="makeEditable('scope')">
+            <ol>
+                {% if project.scope %}
+                    {% for scope_item in project.scope.split('\n') %}
+                        {% if scope_item.strip() %}
+                            <li>{{ scope_item }}</li>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <li class="empty-field">Click to add scope items</li>
+                {% endif %}
+            </ol>
+        </div>
+        <div id="scope-edit" style="display: none;">
+            <textarea id="scope-textarea" rows="5">{{ project.scope or '' }}</textarea>
+            <p class="hint">Enter each scope item on a new line. They will be automatically numbered.</p>
+            <button onclick="saveEdit('scope')">Save</button>
+            <button onclick="cancelEdit('scope')">Cancel</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Project Start Checklist
+            <span id="completion-badge" style="display: none;">
+                <i class="fas fa-award" style="color: #007bff;"></i>
+            </span>
+        </h3>
+        <div class="progress-bar">
+            <div class="progress" style="width: {{ (project.checklist_items|selectattr('completed')|list|length / project.checklist_items|length * 100)|round|int if project.checklist_items else 0 }}%"></div>
+        </div>
+        <p id="progress-text">{{ project.checklist_items|selectattr('completed')|list|length }}/{{ project.checklist_items|length }} tasks completed</p>
+        <ul class="checklist">
+            {% for item in project.checklist_items %}
+            <li>
+                <input type="checkbox" class="toggle-checklist-item" data-item-id="{{ item.id }}" {% if item.completed %}checked{% endif %}>
+                <span {% if item.completed %}style="text-decoration: line-through;"{% endif %}>{{ item.description }}</span>
+                <form method="POST" action="{{ url_for('delete_checklist_item', item_id=item.id) }}" style="display: inline;">
+                    <button type="submit" class="btn-delete">Delete</button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+        <form method="POST" class="add-checklist-item-form">
+            <input type="text" name="checklist_item" placeholder="Add new checklist item" required class="new-checklist-input">
+            <button type="submit" name="add_checklist_item" class="btn btn-add">Add Item</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>Contracts</h3>
+        <div id="contracts-view">
+            <ul class="contract-list">
+                <li>
+                    <input type="checkbox" id="sow-checkbox" {% if project.sow_completed %}checked{% endif %} onclick="toggleContract('sow')">
+                    <label for="sow-checkbox">Statement of Work</label>
+                </li>
+                <li>
+                    <input type="checkbox" id="po-checkbox" {% if project.po_completed %}checked{% endif %} onclick="toggleContract('po')">
+                    <label for="po-checkbox">Purchase Order</label>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- New section for tabs -->
+<div class="tabs-container">
+    <ul class="tabs-menu">
+        <li class="active"><a href="#risk-issue-tracker">Risk and Issue Tracker</a></li>
+        <li><a href="#resources">Resources</a></li>
+        <li><a href="#project-budget">Project Budget</a></li>
+        <!-- Add more tab menu items here as needed -->
+    </ul>
+
+    <div class="tab-content">
+        <div id="risk-issue-tracker" class="tab-pane active">
+            <h3>Risk and Issue Tracker</h3>
+            <button id="add-risk-issue" class="btn severity-badge severity-High">
+                <i class="fas fa-plus-circle"></i> Add New Risk/Issue
+            </button>
+            <div class="risk-issue-summary">
+                <div class="summary-item">
+                    <h4>Total</h4>
+                    <span id="total-count">0</span>
+                </div>
+                <div class="summary-item">
+                    <h4>Open</h4>
+                    <span id="open-count">0</span>
+                </div>
+                <div class="summary-item">
+                    <h4>Closed</h4>
+                    <span id="closed-count">0</span>
+                </div>
+            </div>
+            <table id="risk-issue-table" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Title</th>
+                        <th>Date Created</th>
+                        <th>Severity</th>
+                        <th>Impact</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Risk and Issue items will be dynamically added here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="resources" class="tab-pane">
+            <div class="resource-header">
+                <h3>Project Resources</h3>
+                <div class="resource-buttons">
+                    <button id="add-resource" class="btn severity-badge severity-Medium">
+                        <i class="fas fa-plus-circle"></i> Add Resource
+                    </button>
+                    <button id="resource-settings" class="btn severity-badge severity-Low">
+                        <i class="fas fa-cog"></i> Settings
+                    </button>
+                </div>
+            </div>
+            <div class="resource-list">
+                <table id="resource-table" class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Resource Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Resources will be dynamically added here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="project-budget" class="tab-pane">
+            <h3>Project Budget</h3>
+            <div class="budget-summary">
+                <p><strong>Total Budget:</strong> $<span id="total-budget">{{ "{:,.0f}".format(project.budget) if project.budget is not none else "Not set" }}</span></p>
+                <p><strong>Total Actuals:</strong> $<span id="total-actuals">{{ "{:,.0f}".format(project.actuals) if project.actuals is not none else "Not set" }}</span></p>
+                <p><strong>Remaining Budget:</strong> $<span id="remaining-budget">
+                    {% if project.budget is not none and project.actuals is not none %}
+                        {{ "{:,.0f}".format(project.budget - project.actuals) }}
+                    {% else %}
+                        Not available
+                    {% endif %}
+                </span></p>
+            </div>
+            <!-- Add more detailed budget information or a form to update budget here -->
+        </div>
+        <!-- Add more tab content divs here as needed -->
+    </div>
+</div>
+
+<!-- Modal for adding/editing risk/issue -->
+<div id="risk-issue-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h4>Add/Edit Risk/Issue</h4>
+        <form id="risk-issue-form">
+            <div class="form-group">
+                <label>Type:</label>
+                <input type="radio" name="type" value="Risk" required> Risk
+                <input type="radio" name="type" value="Issue" required> Issue
+            </div>
+            <div class="form-group">
+                <label for="title">Title:</label>
+                <input type="text" id="title" name="title" required>
+            </div>
+            <div class="form-group">
+                <label for="severity">Severity:</label>
+                <select id="severity" name="severity" required>
+                    <option value="Critical">Critical</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                    <option value="TBD">TBD</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Impact:</label>
+                <input type="checkbox" name="impact" value="Scope"> Scope
+                <input type="checkbox" name="impact" value="Schedule"> Schedule
+                <input type="checkbox" name="impact" value="Budget"> Budget
+                <input type="checkbox" name="impact" value="Resources"> Resources
+            </div>
+            <div class="form-group">
+                <label for="mitigation">Mitigation Plan:</label>
+                <textarea id="mitigation" name="mitigation" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="status">Status:</label>
+                <select id="status" name="status" required>
+                    <option value="Open">Open</option>
+                    <option value="Closed">Closed</option>
+                    <option value="Monitoring">Monitoring</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="notes">Notes:</label>
+                <textarea id="notes" name="notes" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Save</button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal for adding/editing resource -->
+<div id="resource-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h4>Add Resource</h4>
+        <form id="resource-form">
+            <div class="form-group">
+                <label for="resource-name">Name:</label>
+                <input type="text" id="resource-name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="resource-type">Resource Type:</label>
+                <select id="resource-type" name="resourceType" required>
+                    <!-- Options will be dynamically populated -->
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Save</button>
+        </form>
+    </div>
+</div>
+
+<!-- Add this new modal for Resource Settings -->
+<div id="resource-settings-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h4>Resource Settings</h4>
+        <table id="resource-types-table" class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Rate</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Resource types will be dynamically added here -->
+            </tbody>
+        </table>
+        <button id="add-resource-type" class="btn severity-badge severity-Medium">Add Resource Type</button>
+    </div>
+</div>
+
+<!-- Add this new modal for adding/editing resource types -->
+<div id="resource-type-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h4 id="resource-type-modal-title">Add Resource Type</h4>
+        <form id="resource-type-form">
+            <div class="form-group">
+                <label for="resource-type-name">Type:</label>
+                <input type="text" id="resource-type-name" name="type" required>
+            </div>
+            <div class="form-group">
+                <label for="resource-type-rate">Rate:</label>
+                <input type="number" id="resource-type-rate" name="rate" step="0.01" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Save</button>
+        </form>
+    </div>
+</div>
+
+<style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    .card {
+        background-color: #f9f9f9;
+        border-radius: 4px;
+        padding: 20px;
+        border: 1px solid #ddd;
+    }
+    .progress-bar {
+        width: 100%;
+        background-color: #e0e0e0;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
+    .progress {
+        height: 20px;
+        background-color: #4CAF50;
+        border-radius: 4px;
+        transition: width 0.5s ease-in-out;
+    }
+    .checklist {
+        list-style-type: none;
+        padding: 0;
+    }
+    .checklist li {
+        margin-bottom: 10px;
+    }
+    .btn-delete {
+        background-color: #f44336;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .add-checklist-item-form {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+    }
+    .new-checklist-input {
+        flex-grow: 1;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+    .btn-add {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .btn-add:hover {
+        background-color: #45a049;
+    }
+    .text-center {
+        text-align: center;
+    }
+    .project-title {
+        margin-bottom: 0;
+    }
+    .client-name {
+        margin-top: 5px;
+    }
+    .card h3 {
+        text-align: center;
+        margin-top: 0;
+        margin-bottom: 15px;
+    }
+    .contract-list {
+        list-style-type: none;
+        padding: 0;
+    }
+
+    .contract-list li {
+        margin-bottom: 10px;
+    }
+
+    .contract-list input[type="checkbox"] {
+        margin-right: 10px;
+    }
+    .editable {
+        cursor: pointer;
+    }
+    .editable:hover {
+        background-color: #f0f0f0;
+    }
+    .hint {
+        font-size: 0.9em;
+        color: #666;
+        margin-top: 5px;
+    }
+    ol {
+        padding-left: 20px;
+    }
+    .empty-field {
+        color: #999;
+        font-style: italic;
+    }
+
+    /* Styles for the new tabs section */
+    .tabs-container {
+        margin-top: 30px;
+    }
+    .tabs-menu {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+        border-bottom: 1px solid #ddd;
+    }
+    .tabs-menu li {
+        display: inline-block;
+        margin-bottom: -1px;
+    }
+    .tabs-menu li a {
+        display: block;
+        padding: 10px 15px;
+        text-decoration: none;
+        color: #333;
+        border: 1px solid transparent;
+        border-radius: 4px 4px 0 0;
+        font-weight: bold;  /* This line makes the tab titles bold */
+    }
+    .tabs-menu li.active a {
+        background-color: #fff;
+        border-color: #ddd;
+        border-bottom-color: #fff;
+    }
+    .tab-content {
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-top: none;
+        padding: 20px;
+    }
+    .tab-pane {
+        display: none;
+    }
+    .tab-pane.active {
+        display: block;
+    }
+
+    /* Styles for the Project Budget tab */
+    .budget-summary {
+        background-color: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+    .budget-summary p {
+        margin: 10px 0;
+    }
+
+    /* Add these new styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.4);
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .table th, .table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+
+    .table th {
+        background-color: #f2f2f2;
+    }
+
+    .risk-issue-summary {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 20px;
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+    }
+
+    .summary-item {
+        text-align: center;
+    }
+
+    .summary-item h4 {
+        margin: 0;
+        font-size: 14px;
+        color: #6c757d;
+    }
+
+    .summary-item span {
+        font-size: 24px;
+        font-weight: bold;
+        color: #007bff;
+    }
+
+    #risk-issue-table th {
+        background-color: #f8f9fa;
+    }
+
+    #risk-issue-table td {
+        vertical-align: middle;
+    }
+
+    .severity-badge {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 14px;
+        display: inline-block;
+    }
+
+    .severity-Critical { background-color: #dc3545; color: white; }
+    .severity-High { background-color: #ffc107; color: black; }
+    .severity-Medium { background-color: #17a2b8; color: white; }
+    .severity-Low { background-color: #28a745; color: white; }
+    .severity-TBD { background-color: #6c757d; color: white; }
+
+    .status-badge {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-weight: bold;
+    }
+
+    .status-Open { background-color: #28a745; color: white; }
+    .status-Closed { background-color: #dc3545; color: white; }
+    .status-Monitoring { background-color: #ffc107; color: black; }
+
+    .btn-action {
+        padding: 2px 8px;
+        margin: 0 2px;
+        border: none;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: bold;
+        transition: opacity 0.3s;
+    }
+
+    .btn-action:hover {
+        opacity: 0.8;
+    }
+
+    #add-risk-issue {
+        font-size: 14px;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    #add-risk-issue:hover {
+        background-color: #e0a800;
+    }
+
+    .resource-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .resource-header h3 {
+        margin: 0;
+    }
+
+    .resource-buttons {
+        display: flex;
+        gap: 10px;
+    }
+
+    #add-resource, #resource-settings {
+        font-size: 14px;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    #add-resource:hover, #resource-settings:hover {
+        opacity: 0.8;
+    }
+</style>
+
+<script>
+    // Add this script to handle checkbox toggling without page reload
+    document.querySelectorAll('.toggle-checklist-item').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const itemId = this.dataset.itemId;
+            const isCompleted = this.checked;
+
+            fetch(`/toggle_checklist_item/${itemId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ completed: isCompleted }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const listItem = this.closest('li');
+                    const itemText = listItem.querySelector('span');
+                    if (isCompleted) {
+                        itemText.style.textDecoration = 'line-through';
+                    } else {
+                        itemText.style.textDecoration = 'none';
+                    }
+                    document.querySelector('#progress-text').textContent = `${data.completed_count}/${data.total_count} tasks completed`;
+                    document.querySelector('.progress').style.width = `${data.progress_percentage}%`;
+                    
+                    // Add this block to show/hide the badge
+                    const completionBadge = document.getElementById('completion-badge');
+                    if (data.progress_percentage === 100) {
+                        completionBadge.style.display = 'inline';
+                    } else {
+                        completionBadge.style.display = 'none';
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    });
+
+    function makeEditable(section) {
+        document.getElementById(`${section}-view`).style.display = 'none';
+        document.getElementById(`${section}-edit`).style.display = 'block';
+    }
+
+    function cancelEdit(section) {
+        document.getElementById(`${section}-view`).style.display = 'block';
+        document.getElementById(`${section}-edit`).style.display = 'none';
+    }
+
+    function saveEdit(section) {
+        let data = {};
+        switch(section) {
+            case 'objectives':
+                data.objectives = document.getElementById('objectives-textarea').value;
+                break;
+            case 'timeline':
+                data.planned_start_date = document.getElementById('start-date').value;
+                data.planned_complete_date = document.getElementById('complete-date').value;
+                break;
+            case 'budget':
+                data.budget = document.getElementById('budget-input').value;
+                data.actuals = document.getElementById('actuals-input').value;
+                break;
+            case 'scope':
+                data.scope = document.getElementById('scope-textarea').value;
+                break;
+        }
+
+        fetch(`/update_project/{{ project.id }}/${section}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${text}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                updateView(section, data);
+                cancelEdit(section);
+            } else {
+                alert('Failed to update. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert(`An error occurred while updating: ${error.message}. Please try again or contact support.`);
+        });
+    }
+
+    function updateView(section, data) {
+        switch(section) {
+            case 'objectives':
+                const objectivesList = data.objectives.split('\n')
+                    .filter(obj => obj.trim())
+                    .map(obj => `<li>${obj}</li>`)
+                    .join('');
+                document.getElementById('objectives-view').innerHTML = objectivesList ? `<ol>${objectivesList}</ol>` : '<ol><li class="empty-field">Click to add objectives</li></ol>';
+                break;
+            case 'timeline':
+                document.getElementById('start-date-view').textContent = new Date(data.planned_start_date).toLocaleDateString();
+                document.getElementById('complete-date-view').textContent = new Date(data.planned_complete_date).toLocaleDateString();
+                break;
+            case 'budget':
+                document.getElementById('budget-value').textContent = data.budget !== null ? '$' + parseFloat(data.budget).toLocaleString('en-US') : 'Not set';
+                document.getElementById('actuals-value').textContent = data.actuals !== null ? '$' + parseFloat(data.actuals).toLocaleString('en-US') : 'Not set';
+                break;
+            case 'scope':
+                const scopeItems = data.scope.split('\n')
+                    .filter(item => item.trim())
+                    .map(item => `<li>${item}</li>`)
+                    .join('');
+                document.getElementById('scope-view').innerHTML = scopeItems ? `<ol>${scopeItems}</ol>` : '<ol><li class="empty-field">Click to add scope items</li></ol>';
+                break;
+        }
+    }
+
+    function toggleContract(type) {
+        const checkbox = document.getElementById(`${type}-checkbox`);
+        const isCompleted = checkbox.checked;
+
+        fetch(`/toggle_contract/{{ project.id }}/${type}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ completed: isCompleted }),
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.success) {
+                checkbox.checked = !isCompleted;
+                console.error('Server response indicates failure:', data);
+                alert('Failed to update. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            checkbox.checked = !isCompleted;
+            alert(`Failed to update. Error: ${error.message}`);
+        });
+    }
+
+    // Add this script for tab functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabLinks = document.querySelectorAll('.tabs-menu a');
+        tabLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const tabId = this.getAttribute('href');
+                
+                // Hide all tab panes
+                document.querySelectorAll('.tab-pane').forEach(pane => {
+                    pane.classList.remove('active');
+                });
+                
+                // Show the selected tab pane
+                document.querySelector(tabId).classList.add('active');
+                
+                // Update active state of tab links
+                tabLinks.forEach(link => {
+                    link.parentElement.classList.remove('active');
+                });
+                this.parentElement.classList.add('active');
+            });
+        });
+
+        // Add this new code for the Risk and Issue Tracker functionality
+        const modal = document.getElementById('risk-issue-modal');
+        const addButton = document.getElementById('add-risk-issue');
+        const closeButton = modal.querySelector('.close');
+        const form = document.getElementById('risk-issue-form');
+        const table = document.getElementById('risk-issue-table');
+
+        addButton.onclick = function() {
+            modal.style.display = 'block';
+            form.reset();
+            form.removeAttribute('data-edit-id');
+        }
+
+        closeButton.onclick = function() {
+            modal.style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        form.onsubmit = function(e) {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            data.impact = formData.getAll('impact');
+            data.dateCreated = new Date().toISOString().split('T')[0];
+
+            const editId = form.getAttribute('data-edit-id');
+            const url = editId 
+                ? `/update_risk_issue/${editId}`
+                : `/add_risk_issue/{{ project.id }}`;
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    if (editId) {
+                        updateRowInTable(result.risk_issue);
+                    } else {
+                        addRowToTable(result.risk_issue);
+                    }
+                    modal.style.display = 'none';
+                    form.reset();
+                } else {
+                    alert('Failed to save. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        }
+
+        function updateSummary() {
+            const rows = table.getElementsByTagName('tr');
+            let totalCount = rows.length - 1; // Subtract 1 for header row
+            let openCount = 0;
+            let closedCount = 0;
+
+            for (let i = 1; i < rows.length; i++) {
+                const status = rows[i].cells[5].textContent;
+                if (status === 'Open') openCount++;
+                else if (status === 'Closed') closedCount++;
+            }
+
+            document.getElementById('total-count').textContent = totalCount;
+            document.getElementById('open-count').textContent = openCount;
+            document.getElementById('closed-count').textContent = closedCount;
+        }
+
+        function updateRowContent(row, data) {
+            row.innerHTML = `
+                <td>${data.type}</td>
+                <td>${data.title}</td>
+                <td>${data.dateCreated}</td>
+                <td><span class="severity-badge severity-${data.severity}">${data.severity}</span></td>
+                <td>${data.impact.join(', ')}</td>
+                <td><span class="status-badge status-${data.status}">${data.status}</span></td>
+                <td>
+                    <button onclick="editRiskIssue(${data.id})" class="btn-action severity-badge severity-Medium">Edit</button>
+                    <button onclick="deleteRiskIssue(${data.id})" class="btn-action severity-badge severity-Critical">Delete</button>
+                </td>
+            `;
+        }
+
+        // Call updateSummary after adding, updating, or deleting a risk/issue
+        function addRowToTable(data) {
+            const row = table.insertRow(-1);
+            updateRowContent(row, data);
+            updateSummary();
+        }
+
+        function updateRowInTable(data) {
+            const rows = table.getElementsByTagName('tr');
+            for (let i = 1; i < rows.length; i++) {
+                if (rows[i].cells[6].querySelector('button').getAttribute('onclick').includes(data.id)) {
+                    updateRowContent(rows[i], data);
+                    break;
+                }
+            }
+            updateSummary();
+        }
+
+        window.editRiskIssue = function(id) {
+            fetch(`/get_risk_issues/{{ project.id }}`)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        const riskIssue = result.risk_issues.find(ri => ri.id === id);
+                        if (riskIssue) {
+                            fillFormWithData(riskIssue);
+                            form.setAttribute('data-edit-id', id);
+                            modal.style.display = 'block';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to load risk issue data. Please try again.');
+                });
+        }
+
+        window.deleteRiskIssue = function(id) {
+            if (confirm('Are you sure you want to delete this risk/issue?')) {
+                fetch(`/delete_risk_issue/${id}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            const rows = table.getElementsByTagName('tr');
+                            for (let i = 1; i < rows.length; i++) {
+                                if (rows[i].cells[6].querySelector('button').getAttribute('onclick').includes(id)) {
+                                    table.deleteRow(i);
+                                    break;
+                                }
+                            }
+                            updateSummary();
+                        } else {
+                            alert('Failed to delete. Please try again.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred. Please try again.');
+                    });
+            }
+        }
+
+        function fillFormWithData(data) {
+            form.elements['type'].value = data.type;
+            form.elements['title'].value = data.title;
+            form.elements['severity'].value = data.severity;
+            form.elements['status'].value = data.status;
+            form.elements['mitigation'].value = data.mitigation;
+            form.elements['notes'].value = data.notes;
+            data.impact.forEach(impact => {
+                form.elements['impact'].forEach(checkbox => {
+                    if (checkbox.value === impact) {
+                        checkbox.checked = true;
+                    }
+                });
+            });
+        }
+
+        // Load existing risk issues when the page loads
+        fetch(`/get_risk_issues/{{ project.id }}`)
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    result.risk_issues.forEach(riskIssue => addRowToTable(riskIssue));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to load risk issues. Please refresh the page.');
+            });
+
+        // Add this new code for the Resources functionality
+        const resourceModal = document.getElementById('resource-modal');
+        const addResourceButton = document.getElementById('add-resource');
+        const closeResourceButton = resourceModal.querySelector('.close');
+        const resourceForm = document.getElementById('resource-form');
+        const resourceTable = document.getElementById('resource-table');
+
+        addResourceButton.onclick = function() {
+            resourceModal.style.display = 'block';
+            resourceForm.reset();
+            populateResourceTypes();
+        }
+
+        closeResourceButton.onclick = function() {
+            resourceModal.style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target == resourceModal) {
+                resourceModal.style.display = 'none';
+            }
+        }
+
+        resourceForm.onsubmit = function(e) {
+            e.preventDefault();
+            const formData = new FormData(resourceForm);
+            const data = Object.fromEntries(formData.entries());
+
+            fetch(`/add_resource/{{ project.id }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    addResourceToTable(result.resource);
+                    resourceModal.style.display = 'none';
+                    resourceForm.reset();
+                } else {
+                    alert('Failed to save. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        }
+
+        function addResourceToTable(resource) {
+            const row = resourceTable.insertRow(-1);
+            row.innerHTML = `
+                <td>${resource.name}</td>
+                <td>${resource.resourceType}</td>
+                <td>
+                    <button onclick="deleteResource(${resource.id})" class="btn-action severity-badge severity-Critical">Delete</button>
+                </td>
+            `;
+        }
+
+        window.deleteResource = function(id) {
+            if (confirm('Are you sure you want to delete this resource?')) {
+                fetch(`/delete_resource/${id}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            const rows = resourceTable.getElementsByTagName('tr');
+                            for (let i = 1; i < rows.length; i++) {
+                                if (rows[i].cells[2].querySelector('button').getAttribute('onclick').includes(id)) {
+                                    resourceTable.deleteRow(i);
+                                    break;
+                                }
+                            }
+                        } else {
+                            alert('Failed to delete. Please try again.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred. Please try again.');
+                    });
+            }
+        }
+
+        // Load existing resources when the page loads
+        fetch(`/get_resources/{{ project.id }}`)
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    result.resources.forEach(resource => addResourceToTable(resource));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to load resources. Please refresh the page.');
+            });
+
+        const resourceSettingsButton = document.getElementById('resource-settings');
+        
+        resourceSettingsButton.onclick = function() {
+            // Add your settings functionality here
+            alert('Resource settings functionality will be implemented here.');
+        }
+
+        const resourceTypeSelect = document.getElementById('resource-type');
+
+        // Function to fetch and populate resource types
+        function populateResourceTypes() {
+            fetch('/get_resource_types')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        resourceTypeSelect.innerHTML = '';
+                        data.resource_types.forEach(type => {
+                            const option = document.createElement('option');
+                            option.value = type.type;  // Use the 'type' field
+                            option.textContent = type.type;  // Display only the type
+                            resourceTypeSelect.appendChild(option);
+                        });
+                    } else {
+                        console.error('Failed to fetch resource types');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        // Call the function to populate resource types when the page loads
+        populateResourceTypes();
+
+        // Call the function again when the add resource button is clicked
+        addResourceButton.onclick = function() {
+            resourceModal.style.display = 'block';
+            resourceForm.reset();
+            populateResourceTypes();
+        }
+
+        // Add this new modal for Resource Settings
+        const resourceSettingsModal = document.getElementById('resource-settings-modal');
+        const closeResourceSettingsButton = resourceSettingsModal.querySelector('.close');
+        const resourceTypesTable = document.getElementById('resource-types-table');
+        const addResourceTypeButton = document.getElementById('add-resource-type');
+        const resourceTypeModal = document.getElementById('resource-type-modal');
+        const resourceTypeForm = document.getElementById('resource-type-form');
+        const resourceTypeModalTitle = document.getElementById('resource-type-modal-title');
+
+        resourceSettingsButton.onclick = function() {
+            resourceSettingsModal.style.display = 'block';
+            loadResourceTypes();
+        }
+
+        closeResourceSettingsButton.onclick = function() {
+            resourceSettingsModal.style.display = 'none';
+        }
+
+        addResourceTypeButton.onclick = function() {
+            openResourceTypeModal();
+        }
+
+        resourceTypeForm.onsubmit = function(e) {
+            e.preventDefault();
+            const formData = new FormData(resourceTypeForm);
+            const data = Object.fromEntries(formData.entries());
+            data.rate = parseFloat(data.rate);
+
+            const url = resourceTypeForm.getAttribute('data-edit-id')
+                ? `/update_resource_type/${resourceTypeForm.getAttribute('data-edit-id')}`
+                : '/add_resource_type';
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    if (resourceTypeForm.getAttribute('data-edit-id')) {
+                        // Update existing row
+                        updateResourceTypeInTable(result.resource_type);
+                    } else {
+                        // Add new row
+                        addResourceTypeToTable(result.resource_type);
+                    }
+                    closeResourceTypeModal();
+                    populateResourceTypes(); // Refresh the dropdown
+                } else {
+                    alert('Failed to save. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        }
+
+        function loadResourceTypes() {
+            fetch('/get_resource_types')
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        const tbody = resourceTypesTable.querySelector('tbody');
+                        tbody.innerHTML = ''; // Clear existing rows
+                        result.resource_types.forEach(rt => addResourceTypeToTable(rt));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to load resource types. Please try again.');
+                });
+        }
+
+        function addResourceTypeToTable(resourceType) {
+            const row = resourceTypesTable.insertRow(-1);
+            row.setAttribute('data-id', resourceType.id);
+            row.innerHTML = `
+                <td>${resourceType.type}</td>
+                <td>$${resourceType.rate.toFixed(2)}</td>
+                <td>
+                    <button onclick="editResourceType(${resourceType.id})" class="btn-action severity-badge severity-Medium">Edit</button>
+                    <button onclick="deleteResourceType(${resourceType.id})" class="btn-action severity-badge severity-Critical">Delete</button>
+                </td>
+            `;
+        }
+
+        function updateResourceTypeInTable(resourceType) {
+            const rows = resourceTypesTable.getElementsByTagName('tr');
+            for (let i = 1; i < rows.length; i++) {
+                if (rows[i].getAttribute('data-id') == resourceType.id) {
+                    rows[i].innerHTML = `
+                        <td>${resourceType.type}</td>
+                        <td>$${resourceType.rate.toFixed(2)}</td>
+                        <td>
+                            <button onclick="editResourceType(${resourceType.id})" class="btn-action severity-badge severity-Medium">Edit</button>
+                            <button onclick="deleteResourceType(${resourceType.id})" class="btn-action severity-badge severity-Critical">Delete</button>
+                        </td>
+                    `;
+                    return;
+                }
+            }
+        }
+
+        window.editResourceType = function(id) {
+            fetch('/get_resource_types')
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        const resourceType = result.resource_types.find(rt => rt.id === id);
+                        if (resourceType) {
+                            openResourceTypeModal(resourceType);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to load resource type data. Please try again.');
+                });
+        }
+
+        window.deleteResourceType = function(id) {
+            if (confirm('Are you sure you want to delete this resource type?')) {
+                fetch(`/delete_resource_type/${id}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            const row = resourceTypesTable.querySelector(`tr[data-id="${id}"]`);
+                            if (row) {
+                                row.remove();
+                            }
+                            populateResourceTypes(); // Refresh the dropdown
+                        } else {
+                            alert('Failed to delete. Please try again.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred. Please try again.');
+                    });
+            }
+        }
+
+        function openResourceTypeModal(resourceType = null) {
+            resourceTypeModalTitle.textContent = resourceType ? 'Edit Resource Type' : 'Add Resource Type';
+            resourceTypeForm.reset();
+            if (resourceType) {
+                resourceTypeForm.setAttribute('data-edit-id', resourceType.id);
+                document.getElementById('resource-type-name').value = resourceType.type;
+                document.getElementById('resource-type-rate').value = resourceType.rate;
+            } else {
+                resourceTypeForm.removeAttribute('data-edit-id');
+            }
+            resourceTypeModal.style.display = 'block';
+        }
+
+        function closeResourceTypeModal() {
+            resourceTypeModal.style.display = 'none';
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target == resourceSettingsModal) {
+                resourceSettingsModal.style.display = 'none';
+            }
+            if (event.target == resourceTypeModal) {
+                resourceTypeModal.style.display = 'none';
+            }
+        }
+    });
+</script>
+{% endblock %}

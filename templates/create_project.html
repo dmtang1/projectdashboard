@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Create New Project</h2>
+<div id="form-container">
+    <form id="create-project-form" method="POST">
+        <div class="step" id="step1">
+            <h3>Basic Information</h3>
+            <div class="form-group">
+                <label for="name">Project Name: *</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="client_name">Client Name:</label>
+                <input type="text" id="client_name" name="client_name">
+            </div>
+            <button type="button" class="btn next-btn">Next</button>
+        </div>
+
+        <div class="step" id="step2">
+            <h3>Project Details</h3>
+            <div class="form-group">
+                <label for="objectives">Business Objectives/Goals:</label>
+                <textarea id="objectives" name="objectives"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="scope">Scope:</label>
+                <textarea id="scope" name="scope"></textarea>
+            </div>
+            <button type="button" class="btn prev-btn">Previous</button>
+            <button type="button" class="btn next-btn">Next</button>
+        </div>
+
+        <div class="step" id="step3">
+            <h3>Timeline and Budget</h3>
+            <div class="form-group">
+                <label for="planned_start_date">Planned Start Date:</label>
+                <input type="date" id="planned_start_date" name="planned_start_date">
+            </div>
+            <div class="form-group">
+                <label for="planned_complete_date">Planned Complete Date:</label>
+                <input type="date" id="planned_complete_date" name="planned_complete_date">
+            </div>
+            <div class="form-group">
+                <label for="budget">Budget:</label>
+                <input type="number" id="budget" name="budget" step="0.01">
+            </div>
+            <button type="button" class="btn prev-btn">Previous</button>
+            <button type="submit" class="btn submit-btn">Create Project</button>
+        </div>
+    </form>
+    <p><small>* Required field</small></p>
+</div>
+
+<style>
+    #form-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .step {
+        display: none;
+    }
+    .step.active {
+        display: block;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+    input[type="text"], input[type="date"], input[type="number"], textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 16px;
+    }
+    textarea {
+        height: 100px;
+    }
+    .btn {
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+    .btn:hover {
+        background-color: #0056b3;
+    }
+    .prev-btn {
+        background-color: #6c757d;
+    }
+    .prev-btn:hover {
+        background-color: #545b62;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('create-project-form');
+        const steps = form.querySelectorAll('.step');
+        let currentStep = 0;
+
+        function showStep(stepIndex) {
+            steps.forEach((step, index) => {
+                step.classList.toggle('active', index === stepIndex);
+            });
+        }
+
+        form.addEventListener('click', function(e) {
+            if (e.target.classList.contains('next-btn')) {
+                e.preventDefault();
+                if (currentStep < steps.length - 1) {
+                    currentStep++;
+                    showStep(currentStep);
+                }
+            } else if (e.target.classList.contains('prev-btn')) {
+                e.preventDefault();
+                if (currentStep > 0) {
+                    currentStep--;
+                    showStep(currentStep);
+                }
+            }
+        });
+
+        showStep(currentStep);
+    });
+</script>
+{% endblock %}

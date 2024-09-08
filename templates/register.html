@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Register</h2>
+<form method="POST">
+    <div style="margin-bottom: 15px;">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+    </div>
+    <div style="margin-bottom: 15px;">
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+    </div>
+    <button type="submit" class="btn">Register</button>
+</form>
+{% endblock %}

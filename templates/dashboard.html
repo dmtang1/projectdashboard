@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Dashboard</h2>
+<h3>Your Projects</h3>
+{% if projects %}
+    <ul style="list-style-type: none; padding: 0;">
+    {% for project in projects %}
+        <li style="background-color: #f9f9f9; margin-bottom: 10px; padding: 15px; border-radius: 4px;">
+            <a href="{{ url_for('view_project', project_id=project.id) }}" style="text-decoration: none; color: #1d2d35; font-weight: bold;">
+                {{ project.name }} - Budget: {% if project.budget is not none %}${{ "{:,.0f}".format(project.budget) }}{% else %}Not set{% endif %}
+            </a>
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>You don't have any projects yet.</p>
+    <a href="{{ url_for('create_project') }}" class="btn">Create a new project</a>
+{% endif %}
+{% endblock %}
